@@ -4,22 +4,13 @@ package handshake
 
 import "strconv"
 
-const (
-	_ServerType_name_0 = "LoadBalancingServerDataServer"
-	_ServerType_name_1 = "UnknownServer"
-)
+const _ServerType_name = "LoadBalancingServerDataServer"
 
-var (
-	_ServerType_index_0 = [...]uint8{0, 19, 29}
-)
+var _ServerType_index = [...]uint8{0, 19, 29}
 
 func (i ServerType) String() string {
-	switch {
-	case 0 <= i && i <= 1:
-		return _ServerType_name_0[_ServerType_index_0[i]:_ServerType_index_0[i+1]]
-	case i == 1000:
-		return _ServerType_name_1
-	default:
+	if i < 0 || i >= ServerType(len(_ServerType_index)-1) {
 		return "ServerType(" + strconv.FormatInt(int64(i), 10) + ")"
 	}
+	return _ServerType_name[_ServerType_index[i]:_ServerType_index[i+1]]
 }
