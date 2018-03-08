@@ -1,19 +1,19 @@
-package main
+package xrootd
 
 import (
-	"github.com/EgorMatirov/xrootd"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
 
-func checkPing(t *testing.B, client *xrootd.Client, done chan<- bool) {
+func checkPing(t *testing.B, client *Client, done chan<- bool) {
 	err := client.Ping()
 	assert.NoError(t, err)
 	done <- true
 }
 
 func BenchmarkHundredPings(b *testing.B) {
-	client, err := xrootd.New(*addr)
+	client, err := New(*Addr)
 	assert.NoError(b, err)
 
 	count := 100
@@ -27,4 +27,11 @@ func BenchmarkHundredPings(b *testing.B) {
 	for i := 0; i < count; i++ {
 		<-done
 	}
+}
+
+func ExampleClient_Ping() {
+	client, _ := New(*Addr)
+	client.Ping()
+	fmt.Print("Pong!")
+	// Output: Pong!
 }
