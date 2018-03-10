@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestClaimID(t *testing.T) {
+func TestClaim(t *testing.T) {
 	chm := New()
 	set := map[[2]byte]bool{}
 	for i := 0; i < 256*256; i++ {
@@ -19,7 +19,7 @@ func TestClaimID(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestClaimIDAfterUnclaim(t *testing.T) {
+func TestClaim_AfterUnclaim(t *testing.T) {
 	chm := New()
 	set := map[[2]byte]bool{}
 	for i := 0; i < 256*256; i++ {
@@ -38,7 +38,7 @@ func TestClaimIDAfterUnclaim(t *testing.T) {
 	assert.Equal(t, expectedID, actualID)
 }
 
-func TestClaimWithIDWhenIDIsFree(t *testing.T) {
+func TestClaimWithID_WhenIDIsFree(t *testing.T) {
 	chm := New()
 
 	channel, err := chm.ClaimWithID([2]byte{13, 14})
@@ -47,7 +47,7 @@ func TestClaimWithIDWhenIDIsFree(t *testing.T) {
 	assert.NotNil(t, channel)
 }
 
-func TestClaimWithIDWhenIDIsTakenByClaimWithID(t *testing.T) {
+func TestClaimWithID_WhenIDIsTakenByClaimWithID(t *testing.T) {
 	chm := New()
 	chm.ClaimWithID([2]byte{13, 14})
 
@@ -56,7 +56,7 @@ func TestClaimWithIDWhenIDIsTakenByClaimWithID(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestClaimWithIDWhenIDIsTakenByClaim(t *testing.T) {
+func TestClaimWithID_WhenIDIsTakenByClaim(t *testing.T) {
 	chm := New()
 	id, _, _ := chm.Claim()
 
@@ -65,7 +65,7 @@ func TestClaimWithIDWhenIDIsTakenByClaim(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestClaimWhenIDIsTakenByClaimWithID(t *testing.T) {
+func TestClaim_WhenIDIsTakenByClaimWithID(t *testing.T) {
 	chm := New()
 	takenID := [2]byte{0, 0}
 	chm.ClaimWithID(takenID)
@@ -77,7 +77,7 @@ func TestClaimWhenIDIsTakenByClaimWithID(t *testing.T) {
 	assert.NotEqual(t, takenID, id)
 }
 
-func TestSendDataWhenIDIsTaken(t *testing.T) {
+func TestSendData_WhenIDIsTaken(t *testing.T) {
 	chm := New()
 	takenID := [2]byte{0, 0}
 	passedValue := struct{}{}
@@ -89,7 +89,7 @@ func TestSendDataWhenIDIsTaken(t *testing.T) {
 	assert.Equal(t, passedValue, <-channel)
 }
 
-func TestSendDataWhenIDIsNotTaken(t *testing.T) {
+func TestSendData_WhenIDIsNotTaken(t *testing.T) {
 	chm := New()
 	notTakenID := [2]byte{0, 0}
 
@@ -98,10 +98,13 @@ func TestSendDataWhenIDIsNotTaken(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func BenchmarkClaimID(b *testing.B) {
+func BenchmarkClaim(b *testing.B) {
 	chm := New()
-	for i := 0; i < 256*256; i++ {
-		_, _, err := chm.Claim()
-		assert.NoError(b, err)
+	for i := 0; i < b.N; i++ {
+		id, _, err := chm.Claim()
+		if err != nil {
+			b.Error(err)
+		}
+		chm.Unclaim(id)
 	}
 }
