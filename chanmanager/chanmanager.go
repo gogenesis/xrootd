@@ -30,6 +30,8 @@ func New() *Chanmanager {
 func (chm *Chanmanager) Claim() (id [2]byte, channel <-chan interface{}, err error) {
 	bidirectionalChannel := make(chan interface{}, 1)
 	chm.mutex.Lock()
+	defer chm.mutex.Unlock()
+
 	for channel == nil && err == nil {
 		select {
 		case id = <-chm.freeIds:
@@ -43,7 +45,6 @@ func (chm *Chanmanager) Claim() (id [2]byte, channel <-chan interface{}, err err
 			err = errors.New("Cannot obtain free channel")
 		}
 	}
-	chm.mutex.Unlock()
 	return
 }
 
@@ -51,13 +52,13 @@ func (chm *Chanmanager) Claim() (id [2]byte, channel <-chan interface{}, err err
 func (chm *Chanmanager) ClaimWithID(id [2]byte) (channel <-chan interface{}, err error) {
 	bidirectionalChannel := make(chan interface{}, 1)
 	chm.mutex.Lock()
+	defer chm.mutex.Unlock()
 	if _, ok := chm.dataWaiters[id]; ok {
 		err = errors.Errorf("Channel with id %s is already taken", id)
 	} else {
 		chm.dataWaiters[id] = bidirectionalChannel
 		channel = bidirectionalChannel
 	}
-	chm.mutex.Unlock()
 	return
 }
 
@@ -72,13 +73,13 @@ func (chm *Chanmanager) Unclaim(id [2]byte) {
 // SendData sends data to channel with specific id
 func (chm *Chanmanager) SendData(id [2]byte, data interface{}) error {
 	chm.mutex.Lock()
+	defer chm.mutex.Unlock()
+
 	if _, ok := chm.dataWaiters[id]; !ok {
-		chm.mutex.Unlock()
 		return errors.Errorf("Cannot find data waiter for id %s", id)
 	}
 
 	chm.dataWaiters[id] <- data
 
-	chm.mutex.Unlock()
 	return nil
 }
