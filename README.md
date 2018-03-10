@@ -7,6 +7,7 @@ A simple example which only connects to the server (see tests/main.go).
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -18,7 +19,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage: %s host:port ", os.Args[0])
 		os.Exit(1)
 	}
-	_, err := xrootd.New(os.Args[1])
+	_, err := xrootd.New(context.Background(), os.Args[1])
 
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Fatal error: %s", err.Error())
@@ -51,20 +52,20 @@ Responses can came in any order so we use a map of channels (`Chanmanager`) to p
 # Supported requests:
 ## Protocol
 ```go
-response, securityInfo, _ := client.Protocol()
+response, securityInfo, _ := client.Protocol(context.Background())
 log.Printf("Protocol binary version is %d. Security level is %d.", response.BinaryProtocolVersion, securityInfo.SecurityLevel)
 
 ```
 
 ## Login
 ```go
-loginResult, _ := client.Login("gopher")
+loginResult, _ := client.Login(context.Background(), "gopher")
 log.Printf("Logged in! Security information length is %d. Value is \"%s\"\n", len(loginResult.SecurityInformation), loginResult.SecurityInformation)
 ```
 
 ## Ping
 ```go
-err = client.Ping()
+err = client.Ping(context.Background())
 if err == nil {
     log.Print("Pong!")
 }
@@ -72,6 +73,6 @@ if err == nil {
 
 ## Dirlist
 ```go
-dirs, _ := client.Dirlist("/tmp/")
+dirs, _ := client.Dirlist(context.Background(), "/tmp/")
 log.Printf("dirlist /tmp: %s", dirs)
 ```
