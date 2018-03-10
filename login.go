@@ -1,13 +1,15 @@
 package xrootd
 
 import (
+	"context"
+
 	"github.com/EgorMatirov/xrootd/encoder"
 	"github.com/EgorMatirov/xrootd/requests/login"
 )
 
 // Login initializes a server connection using username
-func (client *Client) Login(username string) (*login.Response, error) {
-	serverResponse, err := client.call(login.RequestID, login.NewRequest(username))
+func (client *Client) Login(ctx context.Context, username string) (*login.Response, error) {
+	serverResponse, err := client.call(ctx, login.RequestID, login.NewRequest(username))
 	if err != nil {
 		return nil, err
 	}

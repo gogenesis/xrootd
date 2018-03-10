@@ -2,12 +2,13 @@ package xrootd
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
+	"fmt"
 	"log"
 	"net"
 	"os"
 
-	"fmt"
 	"github.com/EgorMatirov/xrootd/chanmanager"
 	"github.com/EgorMatirov/xrootd/encoder"
 )
@@ -41,7 +42,7 @@ type responseHeader struct {
 }
 
 // New creates a client to xrootd server at address
-func New(address string) (*Client, error) {
+func New(ctx context.Context, address string) (*Client, error) {
 	conn, err := createTCPConnection(address)
 	if err != nil {
 		return nil, err
@@ -51,7 +52,7 @@ func New(address string) (*Client, error) {
 
 	go client.consume()
 
-	err = client.handshake()
+	err = client.handshake(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -124,25 +125,33 @@ func extractError(header *responseHeader, data []byte) error {
 	return nil
 }
 
-func (client *Client) call(requestID uint16, request interface{}) (*bytes.Buffer, error) {
+func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, responseChannel <-chan interface{}, requestData []byte) (responseBytes *bytes.Buffer, err error) {
+	if _, err = client.connection.Write(requestData); err != nil {
+		return nil, err
+	}
+
+	select {
+	case response := <-responseChannel:
+		serverResponse := response.(*serverResponse)
+		responseBytes = serverResponse.Data
+		err = serverResponse.Error
+	case <-ctx.Done():
+		err = ctx.Err()
+	}
+
+	return
+}
+
+func (client *Client) call(ctx context.Context, requestID uint16, request interface{}) (responseBytes *bytes.Buffer, err error) {
 	streamID, responseChannel, err := client.chm.Claim()
 	if err != nil {
 		return nil, err
 	}
+
 	requestData, err := encoder.MarshalRequest(requestID, streamID, request)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = client.connection.Write(requestData)
-	if err != nil {
-		return nil, err
-	}
-
-	response := (<-responseChannel).(*serverResponse)
-	if response.Error != nil {
-		return nil, response.Error
-	}
-
-	return response.Data, nil
+	return client.callWithBytesAndResponseChannel(ctx, responseChannel, requestData)
 }

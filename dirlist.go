@@ -2,13 +2,15 @@ package xrootd
 
 import (
 	"bytes"
+	"context"
+
 	"github.com/EgorMatirov/xrootd/encoder"
 	"github.com/EgorMatirov/xrootd/requests/dirlist"
 )
 
 // Dirlist returns contents of a directory
-func (client *Client) Dirlist(path string) ([]string, error) {
-	serverResponse, err := client.call(dirlist.RequestID, dirlist.NewRequest(path))
+func (client *Client) Dirlist(ctx context.Context, path string) ([]string, error) {
+	serverResponse, err := client.call(ctx, dirlist.RequestID, dirlist.NewRequest(path))
 	if err != nil {
 		return nil, err
 	}

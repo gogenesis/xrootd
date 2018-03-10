@@ -1,28 +1,30 @@
 package xrootd
 
 import (
+	"context"
+
 	"github.com/EgorMatirov/xrootd/encoder"
 	"github.com/EgorMatirov/xrootd/requests/handshake"
 )
 
-func (client *Client) handshake() error {
+func (client *Client) handshake(ctx context.Context) error {
 	responseChannel, err := client.chm.ClaimWithID([2]byte{0, 0})
 	if err != nil {
 		return err
 	}
 
-	b, err := encoder.Marshal(handshake.NewRequest())
+	requestBytes, err := encoder.Marshal(handshake.NewRequest())
 	if err != nil {
 		return err
 	}
-	_, err = client.connection.Write(b)
+
+	responseBytes, err := client.callWithBytesAndResponseChannel(ctx, responseChannel, requestBytes)
 	if err != nil {
 		return err
 	}
 
 	var handshakeResult handshake.Response
-	err = encoder.UnmarshalFromReader((<-responseChannel).(*serverResponse).Data, &handshakeResult)
-	if err != nil {
+	if encoder.UnmarshalFromReader(responseBytes, &handshakeResult) != nil {
 		return err
 	}
 
