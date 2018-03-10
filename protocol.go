@@ -17,13 +17,13 @@ func (client *Client) Protocol(ctx context.Context) (response *protocol.Response
 	response = &protocol.Response{}
 	securityInfo = &protocol.SecurityInfo{}
 
-	err = encoder.UnmarshalFromReader(serverResponse, response)
+	err = encoder.Unmarshal(serverResponse, response)
 	if err != nil {
 		return
 	}
 
-	if serverResponse.Len() > 8 {
-		err = encoder.UnmarshalFromReader(serverResponse, securityInfo)
+	if len(serverResponse) > 8 {
+		err = encoder.Unmarshal(serverResponse, securityInfo)
 	}
 	return
 }

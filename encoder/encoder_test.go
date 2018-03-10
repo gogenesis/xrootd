@@ -1,10 +1,9 @@
 package encoder
 
 import (
-	"bytes"
-	"testing"
-
 	"github.com/stretchr/testify/assert"
+
+	"testing"
 )
 
 type request struct {
@@ -42,7 +41,7 @@ type undecodable struct {
 	A float64
 }
 
-func TestEncode(t *testing.T) {
+func TestMarshalRequest(t *testing.T) {
 	var requestID uint16 = 1337
 	var streamID = [2]byte{42, 37}
 	expected := []byte{42, 37, 5, 57, 0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}
@@ -53,20 +52,17 @@ func TestEncode(t *testing.T) {
 	assert.Equal(t, expected, actual)
 }
 
-func TestDecode(t *testing.T) {
+func TestUnmarshal(t *testing.T) {
 	var expected = request{1, 2, 3, [2]byte{6, 7}, []byte{11, 13}}
 
-	var buffer = &bytes.Buffer{}
-	buffer.Write([]byte{0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13})
-
 	var actual = &request{}
-	err := UnmarshalFromReader(buffer, actual)
+	err := Unmarshal([]byte{0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}, actual)
 
 	assert.Equal(t, expected, *actual)
 	assert.NoError(t, err)
 }
 
-func TestEncodeUndecodable(t *testing.T) {
+func TestMarshalRequest_Undecodable(t *testing.T) {
 	var requestID uint16 = 1337
 	var streamID = [2]byte{42, 37}
 
@@ -75,12 +71,10 @@ func TestEncodeUndecodable(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestDecodeUndecodable(t *testing.T) {
-	var buffer = &bytes.Buffer{}
-	buffer.Write([]byte{0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13})
-
+func TestUnmarshal_Undecodable(t *testing.T) {
 	var actual = &undecodable{}
-	err := UnmarshalFromReader(buffer, actual)
+
+	err := Unmarshal([]byte{0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}, actual)
 
 	assert.Error(t, err)
 }
@@ -97,11 +91,10 @@ func BenchmarkMarshal(b *testing.B) {
 
 func BenchmarkUnMarshal(b *testing.B) {
 	br := benchmarkRequest{}
-	var buffer = &bytes.Buffer{}
+	data := make([]byte, 78)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		buffer.Write(make([]byte, 78))
-		if err := UnmarshalFromReader(buffer, &br); err != nil {
+		if err := Unmarshal(data, &br); err != nil {
 			b.Error(err)
 		}
 	}

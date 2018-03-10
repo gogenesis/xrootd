@@ -16,7 +16,7 @@ func (client *Client) Dirlist(ctx context.Context, path string) ([]string, error
 	}
 
 	var result = &dirlist.Response{}
-	err = encoder.UnmarshalFromReader(serverResponse, result)
+	err = encoder.Unmarshal(serverResponse, result)
 	if err != nil {
 		return nil, err
 	}

@@ -1,99 +1,128 @@
 package encoder
 
 import (
-	"bytes"
 	"encoding/binary"
-	"github.com/pkg/errors"
-	"io"
-	"io/ioutil"
 	"reflect"
+
+	"github.com/pkg/errors"
 )
 
 // MarshalRequest marshals request body together with request and stream ids
 func MarshalRequest(requestID uint16, streamID [2]byte, requestBody interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
-	_, err := buf.Write(streamID[:])
-	if err != nil {
-		return nil, err
-	}
+	requestHeader := make([]byte, 4)
+	requestHeader[0] = streamID[0]
+	requestHeader[1] = streamID[1]
 
-	err = binary.Write(buf, binary.BigEndian, requestID)
-	if err != nil {
-		return nil, err
-	}
+	binary.BigEndian.PutUint16(requestHeader[2:], requestID)
 
 	b, err := Marshal(requestBody)
 	if err != nil {
 		return nil, err
 	}
 
-	return append(buf.Bytes(), b...), nil
+	return append(requestHeader, b...), nil
 }
 
 // Marshal marshals structure to the bytes
 func Marshal(x interface{}) ([]byte, error) {
-	buf := new(bytes.Buffer)
 	v := reflect.ValueOf(x)
-	var err error
-	for i := 0; i < v.NumField() && err == nil; i++ {
-		switch v.Field(i).Kind() {
-		case reflect.Uint8:
-			err = buf.WriteByte(v.Field(i).Interface().(uint8))
-		case reflect.Uint16:
-			err = binary.Write(buf, binary.BigEndian, v.Field(i).Interface().(uint16))
-		case reflect.Int32:
-			err = binary.Write(buf, binary.BigEndian, v.Field(i).Interface().(int32))
-		case reflect.Slice:
-			_, err = buf.Write(v.Field(i).Bytes())
-		case reflect.Array:
-			for j := 0; j < v.Field(i).Len() && err == nil; j++ {
-				err = buf.WriteByte(v.Field(i).Index(j).Interface().(uint8))
-			}
-		default:
-			err = errors.Errorf("Cannot encode kind %s", v.Field(i).Kind())
-		}
+	if v.Kind() == reflect.Ptr {
+		v = v.Elem()
 	}
+
+	dataSize, err := calculateSizeForMarshaling(v)
 	if err != nil {
 		return nil, err
 	}
 
-	return buf.Bytes(), nil
+	data := make([]byte, dataSize)
+	pos := 0
+	for i := 0; i < v.NumField() && err == nil; i++ {
+		field := v.Field(i)
+		fieldSize := 0
+		switch field.Kind() {
+		case reflect.Uint8:
+			fieldSize = 1
+			data[pos] = uint8(field.Uint())
+		case reflect.Uint16:
+			fieldSize = 2
+			binary.BigEndian.PutUint16(data[pos:pos+fieldSize], uint16(field.Uint()))
+		case reflect.Int32:
+			fieldSize = 4
+			binary.BigEndian.PutUint32(data[pos:pos+fieldSize], uint32(field.Int()))
+		case reflect.Slice:
+			fieldSize = field.Len()
+			reflect.Copy(reflect.ValueOf(data[pos:pos+fieldSize]), field)
+		case reflect.Array:
+			fieldSize = field.Len()
+			reflect.Copy(reflect.ValueOf(data[pos:pos+fieldSize]), field)
+
+		default:
+			err = errors.Errorf("Cannot encode kind %s", field.Kind())
+		}
+		pos += fieldSize
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
 }
 
-// UnmarshalFromReader unmarshals data from reader
-func UnmarshalFromReader(reader io.Reader, x interface{}) (err error) {
+// Unmarshal unmarshals data from byte slice
+func Unmarshal(data []byte, x interface{}) (err error) {
 	v := reflect.ValueOf(x)
 
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
 	}
+	pos := 0
 
+	for i := 0; i < v.NumField() && err == nil; i++ {
+		field := v.Field(i)
+		fieldSize := 0
+		switch field.Kind() {
+		case reflect.Uint8:
+			fieldSize = 1
+			field.SetUint(uint64(data[pos]))
+		case reflect.Uint16:
+			fieldSize = 2
+			var value = binary.BigEndian.Uint16(data[pos : pos+2])
+			field.SetUint(uint64(value))
+		case reflect.Int32:
+			fieldSize = 4
+			var value = int32(binary.BigEndian.Uint32(data[pos : pos+4]))
+			field.SetInt(int64(value))
+		case reflect.Slice:
+			bytes := data[pos:]
+			fieldSize = len(bytes)
+			field.SetBytes(bytes)
+		case reflect.Array:
+			fieldSize = field.Len()
+			reflect.Copy(field, reflect.ValueOf(data[pos:pos+fieldSize]))
+		default:
+			err = errors.Errorf("Cannot decode kind %s", field.Kind())
+		}
+		pos += fieldSize
+	}
+	return
+}
+
+func calculateSizeForMarshaling(v reflect.Value) (size int, err error) {
 	for i := 0; i < v.NumField() && err == nil; i++ {
 		field := v.Field(i)
 		switch field.Kind() {
 		case reflect.Uint8:
-			var value uint8
-			err = binary.Read(reader, binary.BigEndian, &value)
-			field.Set(reflect.ValueOf(value))
+			size++
 		case reflect.Uint16:
-			var value uint16
-			err = binary.Read(reader, binary.BigEndian, &value)
-			field.Set(reflect.ValueOf(value))
+			size += 2
 		case reflect.Int32:
-			var value int32
-			err = binary.Read(reader, binary.BigEndian, &value)
-			field.Set(reflect.ValueOf(value).Convert(field.Type()))
-		case reflect.Slice:
-			var b []byte
-			b, err = ioutil.ReadAll(reader)
-			field.SetBytes(b)
+			size += 4
 		case reflect.Array:
-			size := field.Len()
-			b := make([]byte, size)
-			_, err = io.ReadFull(reader, b)
-			for j := 0; j < size; j++ {
-				field.Index(j).Set(reflect.ValueOf(b[j]))
-			}
+			size += field.Len()
+		case reflect.Slice:
+			size += field.Len()
 		default:
 			err = errors.Errorf("Cannot decode kind %s", field.Kind())
 		}

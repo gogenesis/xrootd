@@ -24,7 +24,7 @@ func (client *Client) handshake(ctx context.Context) error {
 	}
 
 	var handshakeResult handshake.Response
-	if encoder.UnmarshalFromReader(responseBytes, &handshakeResult) != nil {
+	if encoder.Unmarshal(responseBytes, &handshakeResult) != nil {
 		return err
 	}
 

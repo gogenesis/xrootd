@@ -1,10 +1,10 @@
 package xrootd
 
 import (
-	"bytes"
 	"context"
 	"encoding/binary"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -22,7 +22,7 @@ type Client struct {
 }
 
 type serverResponse struct {
-	Data  *bytes.Buffer
+	Data  []byte
 	Error error
 }
 
@@ -34,6 +34,8 @@ type serverError struct {
 func (err serverError) Error() string {
 	return fmt.Sprintf("Server error %d: %s", err.Code, err.Message)
 }
+
+const responseHeaderSize = 2 + 2 + 4
 
 type responseHeader struct {
 	StreamID   [2]byte
@@ -74,58 +76,44 @@ func (client *Client) consume() {
 	for {
 		var header = &responseHeader{}
 
-		err := encoder.UnmarshalFromReader(client.connection, header)
-		if err != nil {
+		var headerBytes = make([]byte, responseHeaderSize)
+		if _, err := io.ReadFull(client.connection, headerBytes); err != nil {
+			logger.Panic(err)
+		}
+
+		if err := encoder.Unmarshal(headerBytes, header); err != nil {
 			logger.Panic(err)
 		}
 
 		data := make([]byte, header.DataLength)
-		err = binary.Read(client.connection, binary.BigEndian, &data)
-		if err != nil {
+		if _, err := io.ReadFull(client.connection, data); err != nil {
 			logger.Panic(err)
 		}
 
-		dataBuffer := &bytes.Buffer{}
-		_, err = dataBuffer.Write(data)
-		if err != nil {
+		response := &serverResponse{data, nil}
+		if header.Status != 0 {
+			response.Error = extractError(header, data)
+		}
+
+		if err := client.chm.SendData(header.StreamID, response); err != nil {
 			logger.Panic(err)
 		}
 
-		if err == nil && header.Status != 0 {
-			err = extractError(header, data)
-		}
-
-		err = client.chm.SendData(header.StreamID, &serverResponse{dataBuffer, err})
-		if err != nil {
-			logger.Panic(err)
-		}
 		client.chm.Unclaim(header.StreamID)
 	}
 }
 
 func extractError(header *responseHeader, data []byte) error {
 	if header.Status == 4003 {
-		errorBuffer := new(bytes.Buffer)
-		errorBuffer.Write(data)
-
-		var code int32
-		err := binary.Read(errorBuffer, binary.BigEndian, &code)
-		if err != nil {
-			return err
-		}
-
-		message, err := errorBuffer.ReadString(0)
-		if err != nil {
-			return err
-		}
-		message = message[:len(message)-1]
+		code := int32(binary.BigEndian.Uint32(data[0:4]))
+		message := string(data[4 : len(data)-1]) // Skip \0 character at the end
 
 		return serverError{code, message}
 	}
 	return nil
 }
 
-func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, responseChannel <-chan interface{}, requestData []byte) (responseBytes *bytes.Buffer, err error) {
+func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, responseChannel <-chan interface{}, requestData []byte) (responseBytes []byte, err error) {
 	if _, err = client.connection.Write(requestData); err != nil {
 		return nil, err
 	}
@@ -142,7 +130,7 @@ func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, respo
 	return
 }
 
-func (client *Client) call(ctx context.Context, requestID uint16, request interface{}) (responseBytes *bytes.Buffer, err error) {
+func (client *Client) call(ctx context.Context, requestID uint16, request interface{}) (responseBytes []byte, err error) {
 	streamID, responseChannel, err := client.chm.Claim()
 	if err != nil {
 		return nil, err

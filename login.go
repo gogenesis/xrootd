@@ -15,7 +15,7 @@ func (client *Client) Login(ctx context.Context, username string) (*login.Respon
 	}
 
 	var response = &login.Response{}
-	err = encoder.UnmarshalFromReader(serverResponse, response)
+	err = encoder.Unmarshal(serverResponse, response)
 	if err != nil {
 		return nil, err
 	}
