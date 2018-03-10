@@ -9,7 +9,7 @@ import (
 
 // Protocol obtains the protocol version number, type of server and security information
 func (client *Client) Protocol(ctx context.Context) (response *protocol.Response, securityInfo *protocol.SecurityInfo, err error) {
-	serverResponse, err := client.call(ctx, protocol.RequestID, protocol.NewRequest())
+	serverResponse, err := client.call(ctx, protocol.RequestID, protocol.NewRequest(client.protocolVersion))
 	if err != nil {
 		return
 	}

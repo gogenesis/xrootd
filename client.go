@@ -17,8 +17,9 @@ var logger = log.New(os.Stderr, "xrootd: ", log.LstdFlags)
 
 // A Client to xrootd server
 type Client struct {
-	connection *net.TCPConn
-	chm        *chanmanager.Chanmanager
+	connection      *net.TCPConn
+	chm             *chanmanager.Chanmanager
+	protocolVersion int32
 }
 
 type serverResponse struct {
@@ -50,7 +51,7 @@ func New(ctx context.Context, address string) (*Client, error) {
 		return nil, err
 	}
 
-	client := &Client{conn, chanmanager.New()}
+	client := &Client{conn, chanmanager.New(), 0}
 
 	go client.consume()
 

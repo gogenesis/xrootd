@@ -21,6 +21,6 @@ type Request struct {
 	Reserved2             int32
 }
 
-func NewRequest() Request {
-	return Request{784, [11]byte{}, 0, 0}
+func NewRequest(protocolVersion int32) Request {
+	return Request{protocolVersion, [11]byte{}, 0, 0}
 }

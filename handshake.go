@@ -28,6 +28,7 @@ func (client *Client) handshake(ctx context.Context) error {
 		return err
 	}
 
+	client.protocolVersion = handshakeResult.ProtocolVersion
 	logger.Printf("Connected! Protocol version is %d. Server type is %s.", handshakeResult.ProtocolVersion, handshakeResult.ServerType)
 
 	return nil
