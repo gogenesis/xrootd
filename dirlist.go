@@ -30,6 +30,7 @@ func (client *Client) Dirlist(ctx context.Context, path string) ([]string, error
 	resultStrings := make([]string, len(strings))
 
 	for i := 0; i < len(strings); i++ {
+		strings[i] = bytes.Trim(strings[i], "\x00")
 		resultStrings[i] = string(strings[i])
 	}
 
