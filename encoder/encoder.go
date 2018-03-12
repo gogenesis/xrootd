@@ -50,6 +50,9 @@ func Marshal(x interface{}) ([]byte, error) {
 		case reflect.Int32:
 			fieldSize = 4
 			binary.BigEndian.PutUint32(data[pos:pos+fieldSize], uint32(field.Int()))
+		case reflect.Int64:
+			fieldSize = 8
+			binary.BigEndian.PutUint64(data[pos:pos+fieldSize], uint64(field.Int()))
 		case reflect.Slice:
 			fieldSize = field.Len()
 			reflect.Copy(reflect.ValueOf(data[pos:pos+fieldSize]), field)
@@ -88,12 +91,16 @@ func Unmarshal(data []byte, x interface{}) (err error) {
 			field.SetUint(uint64(data[pos]))
 		case reflect.Uint16:
 			fieldSize = 2
-			var value = binary.BigEndian.Uint16(data[pos : pos+2])
+			var value = binary.BigEndian.Uint16(data[pos : pos+fieldSize])
 			field.SetUint(uint64(value))
 		case reflect.Int32:
 			fieldSize = 4
-			var value = int32(binary.BigEndian.Uint32(data[pos : pos+4]))
+			var value = int32(binary.BigEndian.Uint32(data[pos : pos+fieldSize]))
 			field.SetInt(int64(value))
+		case reflect.Int64:
+			fieldSize = 8
+			var value = int64(binary.BigEndian.Uint64(data[pos : pos+fieldSize]))
+			field.SetInt(value)
 		case reflect.Slice:
 			bytes := data[pos:]
 			fieldSize = len(bytes)
@@ -119,6 +126,8 @@ func calculateSizeForMarshaling(v reflect.Value) (size int, err error) {
 			size += 2
 		case reflect.Int32:
 			size += 4
+		case reflect.Int64:
+			size += 8
 		case reflect.Array:
 			size += field.Len()
 		case reflect.Slice:

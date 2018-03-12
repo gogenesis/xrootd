@@ -7,6 +7,7 @@ import (
 )
 
 type request struct {
+	Z int64
 	X int32
 	A uint8
 	C uint16
@@ -44,19 +45,19 @@ type undecodable struct {
 func TestMarshalRequest(t *testing.T) {
 	var requestID uint16 = 1337
 	var streamID = [2]byte{42, 37}
-	expected := []byte{42, 37, 5, 57, 0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}
+	expected := []byte{42, 37, 5, 57, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}
 
-	actual, err := MarshalRequest(requestID, streamID, request{1, 2, 3, [2]byte{6, 7}, []byte{11, 13}})
+	actual, err := MarshalRequest(requestID, streamID, request{7, 1, 2, 3, [2]byte{6, 7}, []byte{11, 13}})
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
 }
 
 func TestUnmarshal(t *testing.T) {
-	var expected = request{1, 2, 3, [2]byte{6, 7}, []byte{11, 13}}
+	var expected = request{7, 1, 2, 3, [2]byte{6, 7}, []byte{11, 13}}
 
 	var actual = &request{}
-	err := Unmarshal([]byte{0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}, actual)
+	err := Unmarshal([]byte{0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}, actual)
 
 	assert.Equal(t, expected, *actual)
 	assert.NoError(t, err)
