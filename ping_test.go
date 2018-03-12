@@ -17,6 +17,8 @@ func checkPing(t *testing.T, client *Client, done chan<- bool) {
 func TestClient_Ping_100(t *testing.T) {
 	client, err := New(context.Background(), *Addr)
 	assert.NoError(t, err)
+	_, err = client.Login(context.Background(), "gopher")
+	assert.NoError(t, err)
 
 	count := 100
 	done := make(chan bool, count)
@@ -33,6 +35,8 @@ func TestClient_Ping_100(t *testing.T) {
 func BenchmarkHundredPings(b *testing.B) {
 	client, err := New(context.Background(), *Addr)
 	assert.NoError(b, err)
+	_, err = client.Login(context.Background(), "gopher")
+	assert.NoError(b, err)
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
@@ -44,7 +48,10 @@ func BenchmarkHundredPings(b *testing.B) {
 
 func ExampleClient_Ping() {
 	client, _ := New(context.Background(), *Addr)
+
+	client.Login(context.Background(), "gopher")
 	client.Ping(context.Background())
+
 	fmt.Print("Pong!")
 	// Output: Pong!
 }
