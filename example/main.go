@@ -40,6 +40,10 @@ func main() {
 	checkError(err)
 	log.Printf("Open /tmp/test... File handle: %x", fileHandle)
 
+	err = client.Write(context.Background(), fileHandle, 0, 0, []byte("Works! Hello from ematirov!"))
+	checkError(err)
+	log.Print("Wrote!")
+
 	err = client.Close(context.Background(), fileHandle, 0)
 	checkError(err)
 }
