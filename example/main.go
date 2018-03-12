@@ -25,6 +25,7 @@ func main() {
 	loginResult, err := client.Login(context.Background(), "gopher")
 	checkError(err)
 	log.Printf("Logged in! Security information length is %d. Value is \"%s\"\n", len(loginResult.SecurityInformation), loginResult.SecurityInformation)
+	log.Printf("Session id is %x\n", loginResult.SessionID)
 
 	err = client.Ping(context.Background())
 	checkError(err)

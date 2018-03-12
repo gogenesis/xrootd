@@ -7,6 +7,7 @@ import (
 const RequestID uint16 = 3007
 
 type Response struct {
+	SessionID           [16]byte
 	SecurityInformation []byte
 }
 
@@ -15,15 +16,16 @@ type Request struct {
 	UsernameBytes [8]byte
 	Reserved1     byte
 	Ability       byte
-	Reserved2     byte
-	Reserved3     byte
-	Reserved4     int32
+	Capabilities  byte
+	Role          byte
+	TokenLength   int32
+	Token         []byte
 }
 
 func NewRequest(username string) Request {
 	var usernameBytes [8]byte
 	copy(usernameBytes[:], username)
-	var ability = byte(0)
+	var ability = byte(00000)
 
-	return Request{int32(os.Getpid()), usernameBytes, 0, ability, 0, 0, 0}
+	return Request{int32(os.Getpid()), usernameBytes, 0, ability, 1, 0, 0, []byte{}}
 }
