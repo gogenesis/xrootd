@@ -44,6 +44,9 @@ func main() {
 	checkError(err)
 	log.Print("Wrote!")
 
+	err = client.Sync(context.Background(), fileHandle)
+	checkError(err)
+
 	err = client.Close(context.Background(), fileHandle, 0)
 	checkError(err)
 }
