@@ -47,6 +47,10 @@ func main() {
 	err = client.Sync(context.Background(), fileHandle)
 	checkError(err)
 
+	data, err := client.Read(context.Background(), fileHandle, 0, 27)
+	checkError(err)
+	log.Printf("Read /tmp/test... Content: %s", data)
+
 	err = client.Close(context.Background(), fileHandle, 0)
 	checkError(err)
 }
