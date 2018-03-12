@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/EgorMatirov/xrootd"
+	"github.com/EgorMatirov/xrootd/requests/open"
 )
 
 var addr = flag.String("addr", "0.0.0.0:9001", "address of xrootd server")
@@ -35,9 +36,9 @@ func main() {
 	checkError(err)
 	log.Printf("dirlist /tmp: %s", dirs)
 
-	log.Println("Calling invalid function...")
-	err = client.Invalid(context.Background())
+	fileHandle, err := client.Open(context.Background(), "/tmp/test", open.ModeOwnerWrite, open.OptionsOpenAppend|open.OptionsOpenUpdate)
 	checkError(err)
+	log.Printf("Open /tmp/test... File handle: %x", fileHandle)
 }
 
 func checkError(err error) {
