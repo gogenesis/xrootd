@@ -25,6 +25,8 @@ const (
 type Options uint16
 
 const (
+	// OptionsNone specifies that file is opened without specific options
+	OptionsNone Options = 0
 	// OptionsCompress specifies that file is opened even when compressed
 	OptionsCompress Options = 1
 	// OptionsDelete specifies that file is opened deleting any existing file

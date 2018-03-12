@@ -30,7 +30,7 @@ func TestClient_Read(t *testing.T) {
 	err = client.Close(context.Background(), handle, int64(len(message)))
 	assert.NoError(t, err)
 
-	handle, err = client.Open(context.Background(), "/tmp/testFiles/read", open.ModeOwnerRead, 0)
+	handle, err = client.Open(context.Background(), "/tmp/testFiles/read", open.ModeOwnerRead, open.OptionsNone)
 	assert.NoError(t, err)
 	assert.NotNil(t, handle)
 
