@@ -75,6 +75,7 @@ func (sm *StreamManager) ClaimWithID(id StreamID) (channel DataReceiveChannel, e
 // Unclaim marks channel with specified id as unclaimed
 func (sm *StreamManager) Unclaim(id StreamID) {
 	sm.mutex.Lock()
+	close(sm.dataWaiters[id])
 	delete(sm.dataWaiters, id)
 	sm.mutex.Unlock()
 	sm.freeIds <- id

@@ -95,7 +95,9 @@ func (client *Client) consume() {
 			logger.Panic(err)
 		}
 
-		client.sm.Unclaim(header.StreamID)
+		if header.Status != 4000 { // oksofar
+			client.sm.Unclaim(header.StreamID)
+		}
 	}
 }
 
@@ -114,12 +116,21 @@ func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, respo
 		return nil, err
 	}
 
-	select {
-	case serverResponse := <-responseChannel:
-		responseBytes = serverResponse.Data
-		err = serverResponse.Error
-	case <-ctx.Done():
-		err = ctx.Err()
+	more := true
+	var serverResponse *streammanager.ServerResponse
+	for more {
+		select {
+		case serverResponse, more = <-responseChannel:
+			if serverResponse != nil {
+				responseBytes = append(responseBytes, serverResponse.Data...)
+				err = serverResponse.Error
+				if err != nil {
+					return
+				}
+			}
+		case <-ctx.Done():
+			err = ctx.Err()
+		}
 	}
 
 	return
