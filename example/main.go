@@ -39,6 +39,9 @@ func main() {
 	fileHandle, err := client.Open(context.Background(), "/tmp/test", open.ModeOwnerWrite, open.OptionsOpenAppend|open.OptionsOpenUpdate)
 	checkError(err)
 	log.Printf("Open /tmp/test... File handle: %x", fileHandle)
+
+	err = client.Close(context.Background(), fileHandle, 0)
+	checkError(err)
 }
 
 func checkError(err error) {
