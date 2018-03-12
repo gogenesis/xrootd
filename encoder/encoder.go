@@ -4,11 +4,12 @@ import (
 	"encoding/binary"
 	"reflect"
 
+	"github.com/EgorMatirov/xrootd/streammanager"
 	"github.com/pkg/errors"
 )
 
 // MarshalRequest marshals request body together with request and stream ids
-func MarshalRequest(requestID uint16, streamID [2]byte, requestBody interface{}) ([]byte, error) {
+func MarshalRequest(requestID uint16, streamID streammanager.StreamID, requestBody interface{}) ([]byte, error) {
 	requestHeader := make([]byte, 4)
 	requestHeader[0] = streamID[0]
 	requestHeader[1] = streamID[1]

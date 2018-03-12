@@ -1,4 +1,4 @@
-package chanmanager
+package streammanager
 
 import (
 	"github.com/stretchr/testify/assert"
@@ -6,71 +6,71 @@ import (
 )
 
 func TestClaim(t *testing.T) {
-	chm := New()
-	set := map[[2]byte]bool{}
+	sm := New()
+	set := map[StreamID]bool{}
 	for i := 0; i < 256*256; i++ {
-		id, channel, err := chm.Claim()
+		id, channel, err := sm.Claim()
 		assert.NoError(t, err)
 		assert.NotNil(t, channel)
 		assert.False(t, set[id], "Id %s was already taken", id)
 		set[id] = true
 	}
-	_, _, err := chm.Claim()
+	_, _, err := sm.Claim()
 	assert.Error(t, err)
 }
 
 func TestClaim_AfterUnclaim(t *testing.T) {
-	chm := New()
-	set := map[[2]byte]bool{}
+	sm := New()
+	set := map[StreamID]bool{}
 	for i := 0; i < 256*256; i++ {
-		id, channel, err := chm.Claim()
+		id, channel, err := sm.Claim()
 		assert.NoError(t, err)
 		assert.NotNil(t, channel)
 		assert.False(t, set[id], "Id %s was already taken", id)
 		set[id] = true
 	}
-	expectedID := [2]byte{13, 14}
-	chm.Unclaim(expectedID)
+	expectedID := StreamID{13, 14}
+	sm.Unclaim(expectedID)
 
-	actualID, channel, err := chm.Claim()
+	actualID, channel, err := sm.Claim()
 	assert.NoError(t, err)
 	assert.NotNil(t, channel)
 	assert.Equal(t, expectedID, actualID)
 }
 
 func TestClaimWithID_WhenIDIsFree(t *testing.T) {
-	chm := New()
+	sm := New()
 
-	channel, err := chm.ClaimWithID([2]byte{13, 14})
+	channel, err := sm.ClaimWithID(StreamID{13, 14})
 
 	assert.NoError(t, err)
 	assert.NotNil(t, channel)
 }
 
 func TestClaimWithID_WhenIDIsTakenByClaimWithID(t *testing.T) {
-	chm := New()
-	chm.ClaimWithID([2]byte{13, 14})
+	sm := New()
+	sm.ClaimWithID(StreamID{13, 14})
 
-	_, err := chm.ClaimWithID([2]byte{13, 14})
+	_, err := sm.ClaimWithID(StreamID{13, 14})
 
 	assert.Error(t, err)
 }
 
 func TestClaimWithID_WhenIDIsTakenByClaim(t *testing.T) {
-	chm := New()
-	id, _, _ := chm.Claim()
+	sm := New()
+	id, _, _ := sm.Claim()
 
-	_, err := chm.ClaimWithID(id)
+	_, err := sm.ClaimWithID(id)
 
 	assert.Error(t, err)
 }
 
 func TestClaim_WhenIDIsTakenByClaimWithID(t *testing.T) {
-	chm := New()
-	takenID := [2]byte{0, 0}
-	chm.ClaimWithID(takenID)
+	sm := New()
+	takenID := StreamID{0, 0}
+	sm.ClaimWithID(takenID)
 
-	id, channel, err := chm.Claim()
+	id, channel, err := sm.Claim()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, channel)
@@ -78,33 +78,33 @@ func TestClaim_WhenIDIsTakenByClaimWithID(t *testing.T) {
 }
 
 func TestSendData_WhenIDIsTaken(t *testing.T) {
-	chm := New()
-	takenID := [2]byte{0, 0}
-	passedValue := struct{}{}
+	sm := New()
+	takenID := StreamID{0, 0}
+	passedValue := &ServerResponse{}
 
-	channel, _ := chm.ClaimWithID(takenID)
-	err := chm.SendData(takenID, passedValue)
+	channel, _ := sm.ClaimWithID(takenID)
+	err := sm.SendData(takenID, passedValue)
 
 	assert.NoError(t, err)
 	assert.Equal(t, passedValue, <-channel)
 }
 
 func TestSendData_WhenIDIsNotTaken(t *testing.T) {
-	chm := New()
-	notTakenID := [2]byte{0, 0}
+	sm := New()
+	notTakenID := StreamID{0, 0}
 
-	err := chm.SendData(notTakenID, struct{}{})
+	err := sm.SendData(notTakenID, &ServerResponse{})
 
 	assert.Error(t, err)
 }
 
 func BenchmarkClaim(b *testing.B) {
-	chm := New()
+	sm := New()
 	for i := 0; i < b.N; i++ {
-		id, _, err := chm.Claim()
+		id, _, err := sm.Claim()
 		if err != nil {
 			b.Error(err)
 		}
-		chm.Unclaim(id)
+		sm.Unclaim(id)
 	}
 }

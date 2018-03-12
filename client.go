@@ -9,8 +9,8 @@ import (
 	"net"
 	"os"
 
-	"github.com/EgorMatirov/xrootd/chanmanager"
 	"github.com/EgorMatirov/xrootd/encoder"
+	"github.com/EgorMatirov/xrootd/streammanager"
 )
 
 var logger = log.New(os.Stderr, "xrootd: ", log.LstdFlags)
@@ -18,13 +18,8 @@ var logger = log.New(os.Stderr, "xrootd: ", log.LstdFlags)
 // A Client to xrootd server
 type Client struct {
 	connection      *net.TCPConn
-	chm             *chanmanager.Chanmanager
+	sm              *streammanager.StreamManager
 	protocolVersion int32
-}
-
-type serverResponse struct {
-	Data  []byte
-	Error error
 }
 
 type serverError struct {
@@ -39,7 +34,7 @@ func (err serverError) Error() string {
 const responseHeaderSize = 2 + 2 + 4
 
 type responseHeader struct {
-	StreamID   [2]byte
+	StreamID   streammanager.StreamID
 	Status     uint16
 	DataLength int32
 }
@@ -51,7 +46,7 @@ func New(ctx context.Context, address string) (*Client, error) {
 		return nil, err
 	}
 
-	client := &Client{conn, chanmanager.New(), 0}
+	client := &Client{conn, streammanager.New(), 0}
 
 	go client.consume()
 
@@ -91,16 +86,16 @@ func (client *Client) consume() {
 			logger.Panic(err)
 		}
 
-		response := &serverResponse{data, nil}
+		response := &streammanager.ServerResponse{data, nil}
 		if header.Status != 0 {
 			response.Error = extractError(header, data)
 		}
 
-		if err := client.chm.SendData(header.StreamID, response); err != nil {
+		if err := client.sm.SendData(header.StreamID, response); err != nil {
 			logger.Panic(err)
 		}
 
-		client.chm.Unclaim(header.StreamID)
+		client.sm.Unclaim(header.StreamID)
 	}
 }
 
@@ -114,14 +109,13 @@ func extractError(header *responseHeader, data []byte) error {
 	return nil
 }
 
-func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, responseChannel <-chan interface{}, requestData []byte) (responseBytes []byte, err error) {
+func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, responseChannel streammanager.DataReceiveChannel, requestData []byte) (responseBytes []byte, err error) {
 	if _, err = client.connection.Write(requestData); err != nil {
 		return nil, err
 	}
 
 	select {
-	case response := <-responseChannel:
-		serverResponse := response.(*serverResponse)
+	case serverResponse := <-responseChannel:
 		responseBytes = serverResponse.Data
 		err = serverResponse.Error
 	case <-ctx.Done():
@@ -132,7 +126,7 @@ func (client *Client) callWithBytesAndResponseChannel(ctx context.Context, respo
 }
 
 func (client *Client) call(ctx context.Context, requestID uint16, request interface{}) (responseBytes []byte, err error) {
-	streamID, responseChannel, err := client.chm.Claim()
+	streamID, responseChannel, err := client.sm.Claim()
 	if err != nil {
 		return nil, err
 	}

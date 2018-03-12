@@ -5,10 +5,11 @@ import (
 
 	"github.com/EgorMatirov/xrootd/encoder"
 	"github.com/EgorMatirov/xrootd/requests/handshake"
+	"github.com/EgorMatirov/xrootd/streammanager"
 )
 
 func (client *Client) handshake(ctx context.Context) error {
-	responseChannel, err := client.chm.ClaimWithID([2]byte{0, 0})
+	responseChannel, err := client.sm.ClaimWithID(streammanager.StreamID{0, 0})
 	if err != nil {
 		return err
 	}

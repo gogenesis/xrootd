@@ -1,6 +1,7 @@
 package encoder
 
 import (
+	"github.com/EgorMatirov/xrootd/streammanager"
 	"github.com/stretchr/testify/assert"
 
 	"testing"
@@ -44,17 +45,17 @@ type undecodable struct {
 
 func TestMarshalRequest(t *testing.T) {
 	var requestID uint16 = 1337
-	var streamID = [2]byte{42, 37}
+	var streamID = streammanager.StreamID{42, 37}
 	expected := []byte{42, 37, 5, 57, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}
 
-	actual, err := MarshalRequest(requestID, streamID, request{7, 1, 2, 3, [2]byte{6, 7}, []byte{11, 13}})
+	actual, err := MarshalRequest(requestID, streamID, request{7, 1, 2, 3, streammanager.StreamID{6, 7}, []byte{11, 13}})
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, actual)
 }
 
 func TestUnmarshal(t *testing.T) {
-	var expected = request{7, 1, 2, 3, [2]byte{6, 7}, []byte{11, 13}}
+	var expected = request{7, 1, 2, 3, streammanager.StreamID{6, 7}, []byte{11, 13}}
 
 	var actual = &request{}
 	err := Unmarshal([]byte{0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 0, 1, 2, 0, 3, 6, 7, 11, 13}, actual)
@@ -65,7 +66,7 @@ func TestUnmarshal(t *testing.T) {
 
 func TestMarshalRequest_Undecodable(t *testing.T) {
 	var requestID uint16 = 1337
-	var streamID = [2]byte{42, 37}
+	var streamID = streammanager.StreamID{42, 37}
 
 	_, err := MarshalRequest(requestID, streamID, undecodable{1})
 
