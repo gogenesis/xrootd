@@ -9,6 +9,7 @@ import (
 
 	"github.com/EgorMatirov/xrootd"
 	"github.com/EgorMatirov/xrootd/requests/open"
+	"time"
 )
 
 var addr = flag.String("addr", "0.0.0.0:9001", "address of xrootd server")
@@ -53,6 +54,10 @@ func main() {
 
 	err = client.Close(context.Background(), fileHandle, 0)
 	checkError(err)
+
+	stat, err := client.Stat(context.Background(), "/tmp/test")
+	checkError(err)
+	log.Printf("Stat /tmp/test... Id: %d, Size: %d, Flags: %d, Modification Time: %s", stat.ID, stat.Size, stat.Flags, time.Unix(stat.ModificationTime, 0))
 }
 
 func checkError(err error) {
