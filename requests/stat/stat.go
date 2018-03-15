@@ -9,17 +9,31 @@ import (
 const RequestID uint16 = 3017
 
 type Request struct {
-	Options byte
-	Reserved [11]byte
+	Options    byte
+	Reserved   [11]byte
 	FileHandle [4]byte
 	PathLength int32
 	Path       []byte
 }
 
+type Flag int32
+
+const (
+	FlagFile     Flag = 0
+	FlagXset     Flag = 1
+	FlagIsDir    Flag = 2
+	FlagOther    Flag = 4
+	FlagOffline  Flag = 8
+	FlagReadable Flag = 16
+	FlagWritable Flag = 32
+	FlagPoscpend Flag = 64
+	FlagBkpexist Flag = 128
+)
+
 type Response struct {
-	ID int64
-	Size int64
-	Flags int32
+	ID               int64
+	Size             int64
+	Flags            Flag
 	ModificationTime int64
 }
 
@@ -30,7 +44,7 @@ func NewRequest(path string) Request {
 	return Request{0, [11]byte{}, [4]byte{}, int32(len(path)), pathBytes}
 }
 
-func ParseReponsee(data []byte) (*Response, error){
+func ParseReponsee(data []byte) (*Response, error) {
 	dataParts := bytes.Split(data, []byte(" "))
 	if len(dataParts) != 4 {
 		return nil, errors.Errorf("Not enough fields in stat response: %s", data)
@@ -49,7 +63,7 @@ func ParseReponsee(data []byte) (*Response, error){
 	if err != nil {
 		return nil, err
 	}
-	flags := int32(flags64)
+	flags := Flag(flags64)
 
 	modificationTime, err := strconv.ParseInt(string(dataParts[3][:len(dataParts[3])-1]), 10, 64)
 	if err != nil {
@@ -58,4 +72,3 @@ func ParseReponsee(data []byte) (*Response, error){
 
 	return &Response{id, size, flags, modificationTime}, nil
 }
-
