@@ -61,3 +61,4 @@ See examples on [godoc](https://godoc.org/github.com/EgorMatirov/xrootd)
 - Read
 - Sync
 - Write
+- Truncate
