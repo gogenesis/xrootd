@@ -59,6 +59,7 @@ See examples on [godoc](https://godoc.org/github.com/EgorMatirov/xrootd)
 - Ping
 - Protocol
 - Read
+- Stat
 - Sync
-- Write
 - Truncate
+- Write
